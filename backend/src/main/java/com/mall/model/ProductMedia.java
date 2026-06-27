@@ -22,7 +22,7 @@ public class ProductMedia {
     private Long productId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "media_type", nullable = false, length = 10)
+    @Column(name = "media_type", nullable = false, length = 10, columnDefinition = "VARCHAR(10)")
     private MediaType mediaType;
 
     @Column(nullable = false, length = 500)
