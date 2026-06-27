@@ -22,7 +22,7 @@ public class ProductInfo1 {
     private String imageUrl;
 
     @Lob
-    @Column(name = "detail_html")
+    @Column(name = "detail_html", columnDefinition = "LONGTEXT")
     private String detailHtml;
 
     @Column(name = "sort_order", nullable = false)
