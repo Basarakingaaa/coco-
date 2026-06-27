@@ -1,4 +1,11 @@
 # 默认拒绝命名空间内所有入站流量，再用下面的策略逐一放行
+#
+# 注意：这里只设置 policyTypes: Ingress，不要加 Egress 类型的策略——
+# NetworkPolicy 的 Ingress 和 Egress 是两个独立的限制开关，一旦有任何 Egress 类型的策略
+# 选中了某个 Pod（哪�y只是想"顺手放行DNS"），那个 Pod 的出站流量就会从"默认全部放行"
+# 变成"默认全部拒绝，只放行明确允许的"，DNS 解析本身不需要额外策略，Ingress 限制不会影响它。
+# （这里曾经多加过一条 allow-dns 的 Egress 策略，结果误伤了所有 Pod 访问 MySQL/Redis/MinIO
+#  的出站连接，排查后已移除——不需要任何 Egress 策略，保持出站默认放行即可。）
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -8,25 +15,6 @@ spec:
   podSelector: {}
   policyTypes:
     - Ingress
-
----
-# 允许 DNS 解析（否则 Service 名称无法解析）
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-dns
-  namespace: mall
-spec:
-  podSelector: {}
-  policyTypes:
-    - Egress
-  egress:
-    - to: []
-      ports:
-        - protocol: UDP
-          port: 53
-        - protocol: TCP
-          port: 53
 
 ---
 # 网关（APISIX，通常在 apisix 命名空间）放行到前端
@@ -51,7 +39,7 @@ spec:
           port: 8080
 
 ---
-# 只允许前端 Pod 访问后端 Pod
+# 只允许前端 Pod 访问后端 Pod，以及网关直接转发 /api/* 的流量（mall-backend-route 没有经过前端）
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -68,6 +56,13 @@ spec:
         - podSelector:
             matchLabels:
               app: frontend
+      ports:
+        - protocol: TCP
+          port: 8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: apisix
       ports:
         - protocol: TCP
           port: 8080
