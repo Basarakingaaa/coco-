@@ -19,6 +19,8 @@ public class RedisConfig {
 
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+        // 注册JavaTimeModule等模块，否则缓存里任何带LocalDateTime字段的对象都会序列化失败
+        objectMapper.findAndRegisterModules();
         GenericJackson2JsonRedisSerializer jsonSerializer = new GenericJackson2JsonRedisSerializer(objectMapper);
 
         template.setKeySerializer(new StringRedisSerializer());
