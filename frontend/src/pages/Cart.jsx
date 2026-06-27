@@ -12,22 +12,32 @@ export default function Cart() {
   const [loading, setLoading] = useState(true);
 
   const loadCart = async () => {
+    if (!localStorage.getItem('token')) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const res = await cartApi.list();
-    const cartItems = res.data || [];
-    setItems(cartItems);
+    try {
+      const res = await cartApi.list();
+      const cartItems = res.data || [];
+      setItems(cartItems);
 
-    const productIds = [...new Set(cartItems.map((i) => i.productId))];
-    const infoMap = {};
-    await Promise.all(
-      productIds.map(async (pid) => {
-        const detail = await productApi.detail(pid);
-        infoMap[pid] = detail.data;
-      })
-    );
-    setProductInfo(infoMap);
-    setSelected(new Set(cartItems.map((i) => i.id)));
-    setLoading(false);
+      const productIds = [...new Set(cartItems.map((i) => i.productId))];
+      const infoMap = {};
+      await Promise.all(
+        productIds.map(async (pid) => {
+          const detail = await productApi.detail(pid);
+          infoMap[pid] = detail.data;
+        })
+      );
+      setProductInfo(infoMap);
+      setSelected(new Set(cartItems.map((i) => i.id)));
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

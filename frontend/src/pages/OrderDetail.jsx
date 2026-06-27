@@ -7,18 +7,47 @@ const STATUS_LABEL = ['待支付', '已支付', '已发货', '已完成', '已�
 export default function OrderDetail() {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
+  const [loadError, setLoadError] = useState('');
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState('');
+
+  const loadOrder = () => {
+    orderApi
+      .detail(id)
+      .then((res) => setOrder(res.data))
+      .catch((e) => setLoadError(e.message || '订单加载失败'));
+  };
 
   useEffect(() => {
-    orderApi.detail(id).then((res) => setOrder(res.data));
+    loadOrder();
   }, [id]);
+
+  const handlePay = async () => {
+    setPaying(true);
+    setPayError('');
+    try {
+      await orderApi.pay(id);
+      loadOrder();
+    } catch (e) {
+      setPayError(e.message || '支付失败');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  if (loadError) {
+    return <div className="empty-state">{loadError}</div>;
+  }
 
   if (!order) {
     return <div className="empty-state">加载中...</div>;
   }
 
+  const isPending = order.status === 0;
+
   return (
     <div className="form-card">
-      <h1 className="form-title">订单已提交</h1>
+      <h1 className="form-title">订单详情</h1>
       <div className="spec-table">
         <div className="spec-row">
           <div className="spec-row-key">订单号</div>
@@ -41,9 +70,23 @@ export default function OrderDetail() {
           <div>{order.receiverAddress}</div>
         </div>
       </div>
-      <Link to="/products" className="btn btn-primary btn-block" style={{ marginTop: 24 }}>
-        继续购物
-      </Link>
+
+      {payError && <p className="form-error">{payError}</p>}
+
+      {isPending ? (
+        <button
+          className="btn btn-primary btn-block"
+          style={{ marginTop: 24 }}
+          onClick={handlePay}
+          disabled={paying}
+        >
+          {paying ? '支付中...' : `立即支付 ¥${order.totalAmount}`}
+        </button>
+      ) : (
+        <Link to="/products" className="btn btn-primary btn-block" style={{ marginTop: 24 }}>
+          继续购物
+        </Link>
+      )}
     </div>
   );
 }
