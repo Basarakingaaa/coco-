@@ -35,6 +35,6 @@ public class Advertisement {
     @Column(name = "end_time")
     private LocalDateTime endTime;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TINYINT")
     private Integer status = 1;
 }

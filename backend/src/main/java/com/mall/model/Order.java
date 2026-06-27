@@ -27,7 +27,7 @@ public class Order {
     /**
      * 0=待支付 1=已支付 2=已发货 3=已完成 4=已取消
      */
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TINYINT")
     private Integer status = 0;
 
     @Column(name = "receiver_name", nullable = false, length = 64)

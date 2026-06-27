@@ -15,6 +15,6 @@ public class AdCategory {
     @Column(nullable = false, length = 64)
     private String name;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TINYINT")
     private Integer status = 1;
 }

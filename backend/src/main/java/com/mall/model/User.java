@@ -32,7 +32,7 @@ public class User {
     @Column(nullable = false, length = 20)
     private String role = "USER";
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TINYINT")
     private Integer status = 1;
 
     @Column(name = "created_at", nullable = false, updatable = false)

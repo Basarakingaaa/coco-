@@ -24,6 +24,6 @@ public class ProductCategory {
     @Column(length = 255)
     private String icon;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TINYINT")
     private Integer status = 1;
 }

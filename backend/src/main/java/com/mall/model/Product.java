@@ -33,7 +33,7 @@ public class Product {
     @Column(name = "sales", nullable = false)
     private Integer sales = 0;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TINYINT")
     private Integer status = 1;
 
     @Column(name = "created_at", nullable = false, updatable = false)
