@@ -23,6 +23,7 @@ spec:
       containers:
         - name: redis
           image: redis:7-alpine
+          args: ["--maxmemory", "96mb", "--maxmemory-policy", "allkeys-lru"]
           ports:
             - containerPort: 6379
           securityContext:
@@ -32,11 +33,11 @@ spec:
               drop: ["ALL"]
           resources:
             requests:
-              cpu: "100m"
-              memory: "128Mi"
+              cpu: "50m"
+              memory: "64Mi"
             limits:
-              cpu: "500m"
-              memory: "256Mi"
+              cpu: "200m"
+              memory: "128Mi"
           readinessProbe:
             exec:
               command: ["redis-cli", "ping"]

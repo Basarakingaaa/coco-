@@ -38,6 +38,10 @@ spec:
       containers:
         - name: mysql
           image: mysql:8.0
+          # 小内存节点上把InnoDB缓冲池显式调小，避免MySQL按宿主机内存自动调大占用过多
+          args:
+            - "--innodb-buffer-pool-size=128M"
+            - "--performance-schema=OFF"
           ports:
             - containerPort: 3306
           envFrom:
@@ -53,11 +57,11 @@ spec:
               mountPath: /var/lib/mysql
           resources:
             requests:
-              cpu: "250m"
-              memory: "512Mi"
+              cpu: "150m"
+              memory: "256Mi"
             limits:
-              cpu: "1"
-              memory: "1Gi"
+              cpu: "500m"
+              memory: "384Mi"
           readinessProbe:
             exec:
               command: ["mysqladmin", "ping", "-h", "127.0.0.1"]
