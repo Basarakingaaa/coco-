@@ -14,17 +14,31 @@ export default function ProductDetail() {
   const [adding, setAdding] = useState(false);
   const [message, setMessage] = useState('');
   const [showVideo, setShowVideo] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    productApi.detail(id).then((res) => {
-      setDetail(res.data);
-      const skuList = res.data?.skuList || [];
-      setSelectedSku(skuList.length > 0 ? skuList[0] : null);
-    });
+    setLoading(true);
+    setLoadError('');
+    productApi
+      .detail(id)
+      .then((res) => {
+        setDetail(res.data);
+        const skuList = res.data?.skuList || [];
+        setSelectedSku(skuList.length > 0 ? skuList[0] : null);
+      })
+      .catch((e) => {
+        setLoadError(e.message || '商品加载失败');
+      })
+      .finally(() => setLoading(false));
   }, [id]);
 
-  if (!detail) {
+  if (loading) {
     return <div className="empty-state">加载中...</div>;
+  }
+
+  if (loadError || !detail) {
+    return <div className="empty-state">{loadError || '商品不存在'}</div>;
   }
 
   const { product, info1 = [], info2 = [], skuList = [], media = [] } = detail;
