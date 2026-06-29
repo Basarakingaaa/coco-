@@ -19,3 +19,6 @@ Thumbs.db
 k8s/secret.yaml
 .env
 *.env.local
+
+# Project report / 答辩材料 — not part of the codebase, kept local only
+report/

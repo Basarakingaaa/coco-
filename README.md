@@ -111,7 +111,7 @@ Gateway API（APISIX）
 ## 仓库结构
 
 ```
-k8s-mall/
+coco-/                 # 仓库地址：https://github.com/Basarakingaaa/coco-
 ├── frontend/          # React 前端
 ├── backend/           # Spring Boot 后端
 ├── k8s/               # 所有 k8s 部署清单
@@ -271,8 +271,8 @@ kubectl get svc -n apisix apisix-gateway   # 确认 EXTERNAL-IP 已分配，PORT
 ### 第九步：拉取代码到服务器
 
 ```bash
-git clone <你的仓库地址> k8s-mall
-cd k8s-mall
+git clone https://github.com/Basarakingaaa/coco-.git
+cd coco-
 ```
 
 ### 第十步：构建镜像并导入K3s
