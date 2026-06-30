@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户登录 - Maven WebApp</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main class="page">
+    <section class="card login-card">
+        <div class="brand">Maven WebApp 登录演示</div>
+        <h1>用户登录</h1>
+        <p class="hint">前端使用纯 HTML + jQuery，后端使用 Servlet + JDBC 校验账号密码。</p>
+
+        <form id="loginForm" autocomplete="off">
+            <label for="username">用户名</label>
+            <input id="username" name="username" type="text" placeholder="请输入用户名" value="admin">
+
+            <label for="password">密码</label>
+            <input id="password" name="password" type="password" placeholder="请输入密码" value="admin123">
+
+            <button id="loginButton" type="submit">登录</button>
+            <div id="message" class="message"></div>
+        </form>
+    </section>
+</main>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="js/login.js"></script>
+</body>
+</html>
