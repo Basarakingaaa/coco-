@@ -1,6 +1,7 @@
 package com.mall.web.servlet;
 
 import com.mall.web.util.Db;
+import com.mall.web.util.RedisClient;
 import com.mall.web.util.Web;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -18,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.Duration;
 import java.util.*;
 
 @MultipartConfig
@@ -52,7 +54,7 @@ public class MallServlet extends HttpServlet {
             if (path.equals("/session")) session(request, response);
             else if (path.equals("/users/login") && method.equals("POST")) login(request, response);
             else if (path.equals("/users/logout") && method.equals("POST")) logout(request, response);
-            else if (path.equals("/users/send-code") && method.equals("POST")) Web.ok(response, Map.of("sent", true, "code", "123456"));
+            else if (path.equals("/users/send-code") && method.equals("POST")) sendCode(request, response);
             else if (path.equals("/users/register") && method.equals("POST")) register(request, response);
             else if (path.equals("/categories") && method.equals("GET")) categories(request, response);
             else if (path.equals("/ads") && method.equals("GET")) ads(request, response);
@@ -130,13 +132,36 @@ public class MallServlet extends HttpServlet {
     private void register(HttpServletRequest request, HttpServletResponse response) throws Exception {
         Map<String, Object> body = Web.body(request);
         String username = Web.string(body.get("username"));
+        String email = Web.string(body.get("email"));
+        String code = Web.string(body.get("code"));
         if (Db.one("SELECT id FROM t_user WHERE username=?", username) != null) {
             Web.fail(response, 400, "用户名已存在");
             return;
         }
+        String cachedCode = RedisClient.get("verify:register:" + email).orElse("");
+        if (!email.isBlank() && !cachedCode.isBlank() && !cachedCode.equals(code)) {
+            Web.fail(response, 400, "验证码错误");
+            return;
+        }
         long id = Db.insert("INSERT INTO t_user(username,password,phone,email,role,status,created_at,updated_at) VALUES(?,?,?,?, 'USER',1,NOW(),NOW())",
-                username, passwordEncoder.encode(Web.string(body.get("password"))), Web.string(body.get("phone")), Web.string(body.get("email")));
+                username, passwordEncoder.encode(Web.string(body.get("password"))), Web.string(body.get("phone")), email);
+        if (!email.isBlank()) {
+            RedisClient.del("verify:register:" + email);
+        }
         Web.ok(response, Map.of("id", id));
+    }
+
+    private void sendCode(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        Map<String, Object> body = Web.body(request);
+        String email = Web.string(body.get("email"));
+        if (email.isBlank()) {
+            Web.fail(response, 400, "邮箱不能为空");
+            return;
+        }
+        String code = String.valueOf(100000 + new Random().nextInt(900000));
+        RedisClient.setex("verify:register:" + email, Duration.ofMinutes(5), code);
+        RedisClient.setex("verify:cooldown:" + email, Duration.ofSeconds(60), "1");
+        Web.ok(response, Map.of("sent", true, "expireSeconds", 300, "devCode", code));
     }
 
     private void categories(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -158,6 +183,12 @@ public class MallServlet extends HttpServlet {
     }
 
     private void products(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        String cacheKey = "products:list:" + Optional.ofNullable(request.getQueryString()).orElse("");
+        Optional<String> cached = RedisClient.get(cacheKey);
+        if (cached.isPresent()) {
+            Web.write(response, 200, Web.GSON.fromJson(cached.get(), Object.class));
+            return;
+        }
         StringBuilder sql = new StringBuilder("SELECT p.*,c.name category_name,(SELECT url FROM t_product_media m WHERE m.product_id=p.id ORDER BY sort_order,id LIMIT 1) cover FROM t_product p LEFT JOIN t_product_category c ON p.category_id=c.id WHERE p.status=1");
         List<Object> args = new ArrayList<>();
         if (request.getParameter("categoryId") != null && !request.getParameter("categoryId").isBlank()) {
@@ -169,10 +200,19 @@ public class MallServlet extends HttpServlet {
             args.add("%" + request.getParameter("keyword") + "%");
         }
         sql.append(" ORDER BY p.id DESC");
-        Web.ok(response, Db.list(sql.toString(), args.toArray()));
+        Object data = Db.list(sql.toString(), args.toArray());
+        Map<String, Object> payload = Map.of("code", 200, "message", "OK", "data", data);
+        RedisClient.setex(cacheKey, Duration.ofSeconds(60), Web.GSON.toJson(payload));
+        Web.write(response, 200, payload);
     }
 
     private void productDetail(long id, HttpServletResponse response) throws Exception {
+        String cacheKey = "products:detail:" + id;
+        Optional<String> cached = RedisClient.get(cacheKey);
+        if (cached.isPresent()) {
+            Web.write(response, 200, Web.GSON.fromJson(cached.get(), Object.class));
+            return;
+        }
         Map<String, Object> product = Db.one("SELECT p.*,c.name category_name FROM t_product p LEFT JOIN t_product_category c ON p.category_id=c.id WHERE p.id=?", id);
         if (product == null) {
             Web.fail(response, 404, "商品不存在");
@@ -182,7 +222,9 @@ public class MallServlet extends HttpServlet {
         product.put("skus", Db.list("SELECT * FROM t_product_sku WHERE product_id=? ORDER BY id", id));
         product.put("infos1", Db.list("SELECT * FROM t_product_info1 WHERE product_id=? ORDER BY sort_order,id", id));
         product.put("infos2", Db.list("SELECT * FROM t_product_info2 WHERE product_id=? ORDER BY sort_order,id", id));
-        Web.ok(response, product);
+        Map<String, Object> payload = Map.of("code", 200, "message", "OK", "data", product);
+        RedisClient.setex(cacheKey, Duration.ofSeconds(60), Web.GSON.toJson(payload));
+        Web.write(response, 200, payload);
     }
 
     private void cart(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -300,6 +342,7 @@ public class MallServlet extends HttpServlet {
             Db.update("UPDATE t_product SET category_id=?,name=?,subtitle=?,price=?,stock=?,status=?,updated_at=NOW() WHERE id=?",
                     Web.longValue(b.get("categoryId")), Web.string(b.get("name")), Web.string(b.get("subtitle")), b.get("price"), Web.intValue(b.get("stock"), 0), Web.intValue(b.get("status"), 1), id);
         }
+        clearProductCache(id);
         productDetail(id, response);
     }
 
@@ -311,11 +354,16 @@ public class MallServlet extends HttpServlet {
         requireAdmin(request);
         Map<String, Object> b = Web.body(request);
         long id = Db.insert("INSERT INTO t_product_media(product_id,media_type,url,sort_order,created_at) VALUES(?,?,?,?,NOW())", productId, Web.string(b.get("mediaType")).isBlank() ? "IMAGE" : Web.string(b.get("mediaType")), Web.string(b.get("url")), Web.intValue(b.get("sortOrder"), 0));
+        clearProductCache(productId);
         Web.ok(response, Db.one("SELECT * FROM t_product_media WHERE id=?", id));
     }
 
     private void adminDeleteMedia(long mediaId, HttpServletResponse response) throws Exception {
+        Map<String, Object> media = Db.one("SELECT product_id FROM t_product_media WHERE id=?", mediaId);
         Db.update("DELETE FROM t_product_media WHERE id=?", mediaId);
+        if (media != null) {
+            clearProductCache(Web.longValue(media.get("product_id")));
+        }
         Web.ok(response, true);
     }
 
@@ -374,7 +422,15 @@ public class MallServlet extends HttpServlet {
 
     private void softDelete(String table, long id, HttpServletResponse response) throws Exception {
         Db.update("UPDATE " + table + " SET status=0 WHERE id=?", id);
+        if ("t_product".equals(table)) {
+            clearProductCache(id);
+        }
         Web.ok(response, true);
+    }
+
+    private void clearProductCache(long productId) {
+        RedisClient.del("products:detail:" + productId);
+        RedisClient.delByPrefix("products:list:");
     }
 
     private long requireUser(HttpServletRequest request) {

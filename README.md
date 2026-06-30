@@ -6,7 +6,7 @@
 服务端：Maven WebApp + Servlet + JDBC
 前端：纯 HTML + CSS + jQuery
 数据库：MySQL，沿用原 `sql/init.sql` 数据库结构
-缓存：Redis，可选用于后续扩展
+缓存：Redis，用于验证码缓存、发送冷却和商品查询缓存
 对象存储：MinIO，可用于商品媒体文件
 运行容器：Tomcat 10+
 ```
@@ -46,6 +46,7 @@
 | 登录态 | HttpSession |
 | 密码校验 | BCrypt |
 | 数据库 | MySQL 8/9 |
+| 缓存 | Redis 7 |
 | 运行容器 | Tomcat 10+ |
 
 ## 仓库结构
@@ -68,7 +69,7 @@ coco-/
 │           ├── assets/js/app.js
 │           └── WEB-INF/web.xml
 ├── sql/init.sql                         # 数据库结构和初始数据，不改变
-├── scripts/                             # 可选本地辅助脚本
+├── scripts/                             # 本地辅助脚本
 └── README.md
 ```
 
@@ -86,6 +87,43 @@ Username: mall
 Password: 使用本机实际密码
 Charset: utf8mb4
 ```
+
+## Redis
+
+当前版本需要 Redis，后端用途：
+
+- 注册验证码缓存：`verify:register:{email}`，5 分钟过期
+- 验证码发送冷却：`verify:cooldown:{email}`，60 秒过期
+- 商品列表缓存：`products:list:*`，60 秒过期
+- 商品详情缓存：`products:detail:{id}`，60 秒过期
+
+本机推荐：
+
+```text
+Host: localhost
+Port: 6379
+Password: 空
+```
+
+Docker 启动：
+
+```powershell
+docker start mall-local-redis-1
+```
+
+如果没有现成容器：
+
+```powershell
+docker run -d --name mall-redis -p 6379:6379 redis:7-alpine
+```
+
+验证：
+
+```powershell
+docker exec -it mall-local-redis-1 redis-cli ping
+```
+
+返回 `PONG` 即可。
 
 首次初始化：
 
@@ -125,18 +163,21 @@ backend/src/main/resources/db.properties
 db.url=jdbc:mysql://localhost:3306/mall?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
 db.username=mall
 db.password=mall
+redis.host=localhost
+redis.port=6379
+redis.password=
 ```
 
 推荐不要把真实密码写入 Git。Tomcat / IDEA Run Configuration 中配置环境变量覆盖：
 
 ```text
-DB_USERNAME=mall;DB_PASSWORD=<本机数据库密码>
+DB_USERNAME=mall;DB_PASSWORD=<本机数据库密码>;REDIS_HOST=localhost;REDIS_PORT=6379;REDIS_PASSWORD=
 ```
 
 如果需要完整覆盖连接：
 
 ```text
-DB_URL=jdbc:mysql://localhost:3306/mall?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true;DB_USERNAME=mall;DB_PASSWORD=<本机数据库密码>
+DB_URL=jdbc:mysql://localhost:3306/mall?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true;DB_USERNAME=mall;DB_PASSWORD=<本机数据库密码>;REDIS_HOST=localhost;REDIS_PORT=6379;REDIS_PASSWORD=
 ```
 
 ## 启动方式
@@ -145,11 +186,12 @@ DB_URL=jdbc:mysql://localhost:3306/mall?useUnicode=true&characterEncoding=UTF-8&
 
 1. 用 IntelliJ IDEA 打开项目根目录。
 2. 确认本机 MySQL 已启动，数据库 `mall` 已初始化。
-3. 配置 Tomcat 10+。
-4. 在 Deployment 中添加 `backend:war exploded`。
-5. 在 Tomcat Run Configuration 中设置数据库环境变量。
-6. 启动 Tomcat。
-7. 浏览器访问：
+3. 确认 Redis 已启动，`redis-cli ping` 返回 `PONG`。
+4. 配置 Tomcat 10+。
+5. 在 Deployment 中添加 `backend:war exploded`。
+6. 在 Tomcat Run Configuration 中设置数据库和 Redis 环境变量。
+7. 启动 Tomcat。
+8. 浏览器访问：
 
 ```text
 http://localhost:8080/mall-webapp/
