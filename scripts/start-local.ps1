@@ -14,11 +14,12 @@ if (-not (Test-Path ".env")) {
     Write-Host "Created .env from .env.example. Review it if you need custom ports or credentials."
 }
 
-docker compose up -d --build
+docker compose up -d mysql redis minio
 
 Write-Host ""
-Write-Host "Local deployment is starting."
-Write-Host "Frontend:      http://localhost:5173"
-Write-Host "Backend API:   http://localhost:8080/api/products"
+Write-Host "Optional Docker dependencies are running."
+Write-Host "MySQL:         localhost:3306"
+Write-Host "Redis:         localhost:6379"
+Write-Host "MinIO API:     http://localhost:9000"
 Write-Host "MinIO Console: http://localhost:9001"
-Write-Host "Admin login:   admin / admin123"
+Write-Host "Run the Maven WebApp with Tomcat 10+ from IDEA."

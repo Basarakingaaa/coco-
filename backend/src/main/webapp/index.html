@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XX 电子商务系统</title>
+    <link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<header class="nav">
+    <div class="nav-inner">
+        <a class="nav-logo" href="#/">XX 商城</a>
+        <nav class="nav-links">
+            <a href="#/">首页</a>
+            <a href="#/products">商品</a>
+            <a href="#/cart">购物车 <span id="cartBadge" class="nav-cart-badge">0</span></a>
+            <a href="#/orders">订单</a>
+            <a href="#/admin">后台</a>
+            <button id="loginLink" type="button">登录</button>
+            <button id="logoutLink" type="button" class="hidden">退出</button>
+        </nav>
+    </div>
+</header>
+
+<main id="app"></main>
+
+<footer class="footer">
+    <div class="container">Maven WebApp + jQuery + 纯 HTML 版本，数据库结构沿用原 `sql/init.sql`。</div>
+</footer>
+
+<div id="modal" class="modal hidden">
+    <div class="modal-card">
+        <button id="closeModal" class="modal-close" type="button">×</button>
+        <h2 id="modalTitle">登录</h2>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

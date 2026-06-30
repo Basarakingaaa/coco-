@@ -51,53 +51,6 @@ services:
       timeout: 5s
       retries: 20
 
-  backend:
-    build:
-      context: ./backend
-    environment:
-      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx384m -XX:MaxMetaspaceSize=128m"
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_NAME: ${DB_NAME:-mall}
-      DB_USERNAME: ${DB_USERNAME:-mall}
-      DB_PASSWORD: ${DB_PASSWORD:-mall}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ""
-      JWT_SECRET: ${JWT_SECRET:-local-development-jwt-secret-change-before-production}
-      MAIL_HOST: ${MAIL_HOST:-smtp.example.com}
-      MAIL_PORT: ${MAIL_PORT:-587}
-      MAIL_USERNAME: ${MAIL_USERNAME:-}
-      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
-      MINIO_BUCKET: ${MINIO_BUCKET:-mall-media}
-      MINIO_PUBLIC_URL: http://localhost:${MINIO_API_PORT:-9000}/${MINIO_BUCKET:-mall-media}
-    ports:
-      - "${BACKEND_PORT:-8080}:8080"
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health | grep -q UP"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-
-  frontend:
-    build:
-      context: ./frontend
-    ports:
-      - "${FRONTEND_PORT:-5173}:8080"
-    depends_on:
-      backend:
-        condition: service_healthy
-
 volumes:
   mysql-data:
   minio-data:

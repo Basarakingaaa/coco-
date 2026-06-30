@@ -1,7 +1,3 @@
-# Node
-frontend/node_modules/
-frontend/dist/
-
 # Java / Maven
 backend/target/
 *.class
@@ -19,8 +15,5 @@ Thumbs.db
 .env
 *.env.local
 
-# Project report / 答辩材料 — only the final deliverables are tracked,
-# the generation scripts / node_modules / source images stay local only
-report/*
-!report/report.docx
-!report/答辩稿.md
+# Old local frontend caches, not part of the WebApp rewrite
+frontend/
