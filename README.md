@@ -8,6 +8,7 @@
 
 - [功能概览](#功能概览)
 - [本地架构](#本地架构)
+- [系统设计说明](#系统设计说明)
 - [技术栈](#技术栈)
 - [目录结构](#目录结构)
 - [部署前准备](#部署前准备)
@@ -45,20 +46,30 @@ XX 电子商务系统
 
 ## 本地架构
 
-IDEA 展示模式下，系统运行结构如下：
+当前项目采用 **Windows 本地单机部署 + 前后端分离** 架构。基础依赖由 Docker Compose 管理，业务代码由 IDEA 启动和展示。
 
 ```text
-浏览器
+Windows 本机
   │
-  ├── http://localhost:5173
-  │       React + Vite 前端开发服务器
-  │       /api 代理到 http://localhost:8080
+  ├── 浏览器
+  │     └── http://localhost:5173
   │
-  └── http://localhost:8080
-          Spring Boot 后端
-          ├── MySQL  localhost:3307  业务数据
-          ├── Redis  localhost:6379  缓存 / 验证码
-          └── MinIO  localhost:9000  图片 / 视频对象存储
+  ├── 前端层：React + Vite
+  │     ├── 页面路由：React Router
+  │     ├── 接口请求：Axios
+  │     └── 开发代理：/api -> http://localhost:8080
+  │
+  ├── 后端层：Spring Boot
+  │     ├── Controller：HTTP API
+  │     ├── Service：业务逻辑
+  │     ├── Repository：数据访问
+  │     ├── Security：JWT 鉴权和角色控制
+  │     └── Config：Redis / MinIO / Security 配置
+  │
+  └── 基础依赖层：Docker Compose
+        ├── MySQL  localhost:3307  业务数据
+        ├── Redis  localhost:6379  缓存 / 验证码
+        └── MinIO  localhost:9000  图片 / 视频对象存储
 ```
 
 说明：
@@ -68,6 +79,67 @@ IDEA 展示模式下，系统运行结构如下：
 - MySQL 使用 `3307` 是为了避开 Windows 本机已有 MySQL 常用的 `3306`。
 - Redis 用于商品详情缓存、验证码缓存等场景。
 - MinIO 用于后台上传商品图片、视频等资料。
+- 当前本地版本没有网关层，请求由 Vite 开发代理直接转发到后端。
+- 当前本地版本没有集群调度层，MySQL、Redis、MinIO 都是 Docker Compose 单机容器。
+
+## 系统设计说明
+
+### 请求链路
+
+用户访问前端页面后，前端通过 Axios 调用 `/api` 开头的接口。开发环境中，Vite 根据 `frontend/vite.config.js` 将 `/api` 请求代理到后端：
+
+```text
+浏览器 -> React/Vite -> /api 代理 -> Spring Boot -> MySQL / Redis / MinIO
+```
+
+这种设计的好处是：
+
+- 前端代码中只需要写相对路径 `/api`，不用硬编码后端地址。
+- 本地开发时避免浏览器跨域问题。
+- 以后如果切换到 Nginx 或其他网关，只需要调整代理层，不需要大改业务代码。
+
+### 后端分层
+
+后端采用常见的 Spring Boot 分层结构：
+
+| 层级 | 目录 | 职责 |
+|---|---|---|
+| Controller | `backend/src/main/java/com/mall/controller` | 接收 HTTP 请求，做参数校验和结果返回 |
+| Service | `backend/src/main/java/com/mall/service` | 编排业务逻辑，例如下单、购物车、验证码 |
+| Repository | `backend/src/main/java/com/mall/repository` | 通过 Spring Data JPA 访问 MySQL |
+| Model / DTO | `backend/src/main/java/com/mall/model` | 定义数据库实体和接口数据对象 |
+| Security | `backend/src/main/java/com/mall/security` | JWT 生成、解析和登录态校验 |
+| Config | `backend/src/main/java/com/mall/config` | Redis、MinIO、Spring Security 等配置 |
+
+### 数据存储设计
+
+系统把不同类型的数据放到不同组件中：
+
+| 数据类型 | 存储位置 | 原因 |
+|---|---|---|
+| 用户、商品、订单、购物车 | MySQL | 结构化业务数据，需要事务和持久化 |
+| 验证码、商品详情缓存 | Redis | 需要过期时间或快速读写 |
+| 商品图片、视频 | MinIO | 文件数据不适合直接存数据库，适合对象存储 |
+
+### 登录与权限设计
+
+登录成功后，后端签发 JWT。前端保存 token，并在后续请求中携带：
+
+```text
+Authorization: Bearer <token>
+```
+
+后端通过 `JwtAuthFilter` 解析 token，确认当前用户身份。后台接口要求用户角色为 `ADMIN`，普通用户不能访问后台管理接口。
+
+### 文件上传设计
+
+后台商品管理中上传图片或视频时，请求先到 Spring Boot 后端。后端校验文件类型和大小后，把文件上传到 MinIO，并把最终访问 URL 保存到数据库。
+
+```text
+浏览器上传文件 -> Spring Boot 校验 -> MinIO 存储文件 -> MySQL 保存 URL
+```
+
+这种设计避免把大文件直接写入 MySQL，数据库只保存结构化信息和文件地址。
 
 ## 技术栈
 
