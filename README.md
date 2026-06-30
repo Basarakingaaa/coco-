@@ -1,6 +1,6 @@
 # XX 电子商务系统
 
-一套面向 Windows 本地运行和 IDEA 展示的电商系统。当前新增了符合课程要求的 **Maven WebApp + jQuery + 纯 HTML** 登录演示模块；原 React + Spring Boot 电商系统作为历史完整版本保留。
+一套面向 Windows 本地运行和 IDEA 展示的电商系统：React 前端 + Spring Boot 后端 + MySQL + Redis + MinIO。项目默认按本地开发环境启动。
 
 ## 目录
 
@@ -66,20 +66,18 @@ XX 电子商务系统
 
 | 层级 | 技术 |
 |---|---|
-| 当前答辩模块前端 | 纯 HTML + CSS + jQuery |
-| 当前答辩模块后端 | Maven WebApp + Servlet + JDBC |
-| 当前答辩模块运行容器 | Tomcat 10+ |
-| 数据库 | MySQL 8/9 |
-| 历史完整版本前端 | React 18 + Vite + React Router + Axios |
-| 历史完整版本后端 | Spring Boot 3.2 + Spring Security + JWT + Spring Data JPA |
-| 可选依赖 | Redis 7、MinIO |
+| 前端 | React 18 + Vite + React Router + Axios |
+| 后端 | Spring Boot 3.2 + Spring Security + JWT + Spring Data JPA |
+| 数据库 | MySQL 8 |
+| 缓存 | Redis 7 |
+| 对象存储 | MinIO |
+| 本地部署 | Windows 原生依赖 + Redis Docker |
 | 开发工具 | IntelliJ IDEA / PowerShell |
 
 ## 仓库结构
 
 ```text
 coco-/
-├── webapp-demo/             # 当前答辩用 Maven WebApp + jQuery + 纯 HTML 登录演示
 ├── backend/                 # Spring Boot 后端
 ├── frontend/                # React 前端
 ├── sql/init.sql             # MySQL 初始化脚本
@@ -93,69 +91,6 @@ coco-/
 ```
 
 ## Windows 本地启动
-
-## Maven WebApp 登录演示启动
-
-这是当前按课程要求改造后的主展示模块，功能流程为：
-
-```text
-login.html 提交账号密码 -> LoginServlet 校验 MySQL t_user -> Session 保存登录用户 -> home.html 显示用户信息
-```
-
-### 技术栈
-
-```text
-服务端：Maven WebApp + Servlet + JDBC
-前端：纯 HTML + CSS + jQuery
-数据库：MySQL，本机 localhost:3306，数据库 mall
-运行容器：Tomcat 10+
-```
-
-### IDEA 启动方式
-
-1. 用 IDEA 打开项目根目录。
-2. 进入 `webapp-demo` 模块。
-3. 确认 `webapp-demo/src/main/resources/db.properties` 中数据库连接正确。
-4. 配置 Tomcat 10+ 本地服务器。
-5. Deployment 选择 `webapp-demo:war exploded`。
-6. 启动后访问：
-
-```text
-http://localhost:8080/mall-webapp-demo/login.html
-```
-
-默认演示账号：
-
-| 用户名 | 密码 |
-|---|---|
-| `admin` | `admin123` |
-
-如果本机数据库密码不是 `mall`，推荐在 Tomcat Run Configuration 中添加环境变量：
-
-```text
-DB_USERNAME=mall;DB_PASSWORD=<本机数据库密码>
-```
-
-也可以直接修改：
-
-```text
-webapp-demo/src/main/resources/db.properties
-```
-
-### Maven 打包
-
-```powershell
-cd webapp-demo
-mvn package
-```
-
-生成文件：
-
-```text
-webapp-demo/target/mall-webapp-demo.war
-```
-
-可部署到 Tomcat 10+ 的 `webapps` 目录。
 
 ### 前置环境
 
