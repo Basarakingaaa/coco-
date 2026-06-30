@@ -1,0 +1,26 @@
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Java / Maven
+backend/target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local environment files
+.env
+*.env.local
+
+# Project report / 答辩材料 — only the final deliverables are tracked,
+# the generation scripts / node_modules / source images stay local only
+report/*
+!report/report.docx
+!report/答辩稿.md
